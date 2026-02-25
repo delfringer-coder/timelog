@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<!-- saved from url=(0052)file:///C:/Users/81801/Downloads/time-tracker_1.html -->
+<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TimeLog</title>
+<link href="./TimeLog_files/css2" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f14;
+    --surface: #1a1a24;
+    --surface2: #24243a;
+    --accent: #7fff6e;
+    --accent2: #ff6eb4;
+    --accent3: #6eb4ff;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --border: #2a2a40;
+    --danger: #ff4f6e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
+
+  header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+  .logo span { color: var(--accent); }
+
+  .date-badge {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* Active Timer */
+  .active-section {
+    margin: 20px 16px;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 24px 20px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .active-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .active-label {
+    font-size: 11px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .active-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .task-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .task-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .task-input:focus { border-color: var(--accent); }
+  .task-input::placeholder { color: var(--muted); }
+
+  .category-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .timer-display {
+    text-align: center;
+    margin: 10px 0 20px;
+  }
+  .timer-digits {
+    font-family: 'Space Mono', monospace;
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -2px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(127,255,110,0.3);
+  }
+  .timer-digits.paused { color: var(--muted); text-shadow: none; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-start {
+    background: var(--accent);
+    color: #0f0f14;
+  }
+  .btn-pause {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-stop {
+    background: var(--danger);
+    color: #fff;
+    flex: 0.6;
+  }
+
+  /* Records */
+  .section-header {
+    padding: 16px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .total-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent3);
+    background: rgba(110,180,255,0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .records-list {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .record-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .cat-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .record-info { flex: 1; min-width: 0; }
+  .record-name {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .record-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .record-duration {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent3);
+    flex-shrink: 0;
+  }
+
+  .record-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+  .record-delete:active { color: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 16px;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    color: var(--muted);
+    font-size: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: color 0.15s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-icon { font-size: 20px; }
+
+  /* Stats page */
+  .stats-page { padding: 0 16px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .cat-breakdown {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .cat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .cat-row:last-child { margin-bottom: 0; }
+  .cat-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .cat-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+  }
+  .cat-name { font-size: 12px; min-width: 60px; }
+  .cat-time { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); min-width: 50px; text-align: right; }
+
+  /* Edit Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open {
+    display: flex;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 28px 20px 40px;
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+  .modal-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .modal-field {
+    margin-bottom: 14px;
+  }
+  .modal-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+  .modal-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+
+  .duration-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .duration-part {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Space Mono', monospace;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+    width: 0;
+  }
+  .duration-part:focus { border-color: var(--accent); }
+  .duration-sep { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 18px; flex-shrink: 0; }
+
+  .modal-save {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: #0f0f14;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: opacity 0.15s;
+  }
+  .modal-save:active { opacity: 0.8; }
+
+  .record-edit {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+  .record-edit:active { color: var(--accent3); }
+
+  /* Page */
+  .page { display: none; }
+  .page.active { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Time<span>Log</span></div>
+  <div class="date-badge" id="dateDisplay">2月25日(水)</div>
+</header>
+
+<!-- HOME PAGE -->
+<div id="homePage" class="page active">
+  <div class="active-section">
+    <div class="active-label">
+      <div class="active-dot" id="activeDot" style="display:none"></div>
+      <span id="activeLabel">タスクを開始</span>
+    </div>
+
+    <div class="task-input-wrap">
+      <input class="task-input" id="taskInput" type="text" placeholder="作業名を入力..." maxlength="40">
+      <select class="category-select" id="catSelect">
+        <option value="work">💼 仕事</option>
+        <option value="study">📚 学習</option>
+        <option value="personal">🏠 個人</option>
+        <option value="health">💪 健康</option>
+        <option value="other">✨ その他</option>
+      </select>
+    </div>
+
+    <div class="timer-display">
+      <div class="timer-digits" id="timerDisplay">00:00:00</div>
+    </div>
+
+    <div class="btn-row" id="btnRow">
+      <button class="btn btn-start" id="mainBtn" onclick="toggleTimer()">▶ 開始</button>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-title">今日の記録</div>
+    <div class="total-badge" id="totalBadge">合計: 0:00</div>
+  </div>
+
+  <div class="records-list" id="recordsList"><div class="empty-state"><div class="empty-icon">🕐</div>まだ記録がありません<br>タスクを開始してみましょう</div></div>
+</div>
+
+<!-- STATS PAGE -->
+<div id="statsPage" class="page">
+  <div class="section-header">
+    <div class="section-title">統計</div>
+  </div>
+  <div class="stats-page">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">今日の合計</div>
+        <div class="stat-value" id="statToday">0m</div>
+        <div class="stat-sub">記録済み</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">タスク数</div>
+        <div class="stat-value" id="statCount">0</div>
+        <div class="stat-sub">今日</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">最長作業</div>
+        <div class="stat-value" id="statLongest">0m</div>
+        <div class="stat-sub">1タスク</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">平均時間</div>
+        <div class="stat-value" id="statAvg">0m</div>
+        <div class="stat-sub">1タスクあたり</div>
+      </div>
+    </div>
+    <div class="cat-breakdown" id="catBreakdown"><div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">カテゴリーデータなし</div></div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span>タスクを編集</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">作業名</div>
+      <input class="modal-input" id="editTaskName" type="text" maxlength="40" placeholder="作業名">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">カテゴリー</div>
+      <select class="modal-select" id="editCat">
+        <option value="work">💼 仕事</option>
+        <option value="study">📚 学習</option>
+        <option value="personal">🏠 個人</option>
+        <option value="health">💪 健康</option>
+        <option value="other">✨ その他</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">作業時間</div>
+      <div class="duration-row">
+        <input class="duration-part" id="editHours" type="number" min="0" max="23" placeholder="時">
+        <span class="duration-sep">h</span>
+        <input class="duration-part" id="editMinutes" type="number" min="0" max="59" placeholder="分">
+        <span class="duration-sep">m</span>
+        <input class="duration-part" id="editSeconds" type="number" min="0" max="59" placeholder="秒">
+        <span class="duration-sep">s</span>
+      </div>
+    </div>
+    <button class="modal-save" onclick="saveEdit()">保存する</button>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="navHome" onclick="switchPage(&#39;home&#39;)">
+    <span class="nav-icon">⏱</span>タイマー
+  </button>
+  <button class="nav-btn" id="navStats" onclick="switchPage(&#39;stats&#39;)">
+    <span class="nav-icon">📊</span>統計
+  </button>
+</nav>
+
+<script>
+const CATS = {
+  work:     { label: '仕事', color: '#7fff6e' },
+  study:    { label: '学習', color: '#6eb4ff' },
+  personal: { label: '個人', color: '#ff6eb4' },
+  health:   { label: '健康', color: '#ffce6e' },
+  other:    { label: 'その他', color: '#b46eff' }
+};
+
+let records = JSON.parse(localStorage.getItem('tl_records') || '[]');
+let timerState = null; // {startTime, pausedMs, task, cat, running, interval}
+
+function saveRecords() {
+  localStorage.setItem('tl_records', JSON.stringify(records));
+}
+
+function todayStr() {
+  return new Date().toLocaleDateString('ja-JP');
+}
+
+function formatDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function formatDurationLong(ms) {
+  const m = Math.floor(ms / 60000);
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  if (h > 0) return `${h}h ${mm}m`;
+  return `${mm}m`;
+}
+
+function updateDateDisplay() {
+  const now = new Date();
+  document.getElementById('dateDisplay').textContent =
+    now.toLocaleDateString('ja-JP', {month:'short', day:'numeric', weekday:'short'});
+}
+
+function toggleTimer() {
+  if (!timerState) {
+    startTimer();
+  } else if (timerState.running) {
+    pauseTimer();
+  } else {
+    resumeTimer();
+  }
+}
+
+function startTimer() {
+  const task = document.getElementById('taskInput').value.trim() || '無名タスク';
+  const cat = document.getElementById('catSelect').value;
+  timerState = {
+    startTime: Date.now(),
+    pausedMs: 0,
+    task, cat,
+    running: true,
+    interval: setInterval(tickTimer, 500)
+  };
+  updateTimerUI();
+}
+
+function pauseTimer() {
+  timerState.pausedMs += Date.now() - timerState.startTime;
+  timerState.startTime = null;
+  timerState.running = false;
+  clearInterval(timerState.interval);
+  updateTimerUI();
+}
+
+function resumeTimer() {
+  timerState.startTime = Date.now();
+  timerState.running = true;
+  timerState.interval = setInterval(tickTimer, 500);
+  updateTimerUI();
+}
+
+function stopTimer() {
+  if (!timerState) return;
+  clearInterval(timerState.interval);
+  const elapsed = timerState.pausedMs + (timerState.running ? Date.now() - timerState.startTime : 0);
+  if (elapsed > 2000) {
+    records.unshift({
+      id: Date.now(),
+      task: timerState.task,
+      cat: timerState.cat,
+      duration: elapsed,
+      date: todayStr(),
+      time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'})
+    });
+    saveRecords();
+  }
+  timerState = null;
+  document.getElementById('timerDisplay').textContent = '00:00:00';
+  document.getElementById('timerDisplay').className = 'timer-digits';
+  updateTimerUI();
+  renderRecords();
+  updateStats();
+}
+
+function tickTimer() {
+  if (!timerState || !timerState.running) return;
+  const elapsed = timerState.pausedMs + (Date.now() - timerState.startTime);
+  const s = Math.floor(elapsed / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  document.getElementById('timerDisplay').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function updateTimerUI() {
+  const dot = document.getElementById('activeDot');
+  const label = document.getElementById('activeLabel');
+  const mainBtn = document.getElementById('mainBtn');
+  const display = document.getElementById('timerDisplay');
+  const btnRow = document.getElementById('btnRow');
+  const input = document.getElementById('taskInput');
+
+  if (!timerState) {
+    dot.style.display = 'none';
+    label.textContent = 'タスクを開始';
+    btnRow.innerHTML = `<button class="btn btn-start" onclick="toggleTimer()">▶ 開始</button>`;
+    display.className = 'timer-digits';
+    input.disabled = false;
+  } else if (timerState.running) {
+    dot.style.display = 'block';
+    label.textContent = timerState.task;
+    display.className = 'timer-digits';
+    input.disabled = true;
+    btnRow.innerHTML = `
+      <button class="btn btn-pause" onclick="toggleTimer()">⏸ 一時停止</button>
+      <button class="btn btn-stop" onclick="stopTimer()">■ 終了</button>
+    `;
+  } else {
+    dot.style.display = 'none';
+    label.textContent = timerState.task + '（一時停止中）';
+    display.className = 'timer-digits paused';
+    input.disabled = true;
+    btnRow.innerHTML = `
+      <button class="btn btn-start" onclick="toggleTimer()">▶ 再開</button>
+      <button class="btn btn-stop" onclick="stopTimer()">■ 終了</button>
+    `;
+  }
+}
+
+function deleteRecord(id) {
+  records = records.filter(r => r.id !== id);
+  saveRecords();
+  renderRecords();
+  updateStats();
+}
+
+function renderRecords() {
+  const today = todayStr();
+  const todayRecs = records.filter(r => r.date === today);
+  const list = document.getElementById('recordsList');
+
+  if (todayRecs.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🕐</div>まだ記録がありません<br>タスクを開始してみましょう</div>`;
+    document.getElementById('totalBadge').textContent = '合計: 0:00';
+    return;
+  }
+
+  const total = todayRecs.reduce((a, r) => a + r.duration, 0);
+  document.getElementById('totalBadge').textContent = '合計: ' + formatDuration(total);
+
+  list.innerHTML = todayRecs.map(r => {
+    const cat = CATS[r.cat] || CATS.other;
+    return `
+      <div class="record-card">
+        <div class="cat-dot" style="background:${cat.color}"></div>
+        <div class="record-info">
+          <div class="record-name">${r.task}</div>
+          <div class="record-meta">${cat.label} · ${r.time}</div>
+        </div>
+        <div class="record-duration">${formatDuration(r.duration)}</div>
+        <button class="record-edit" onclick="openEditModal(${r.id})">✏️</button>
+        <button class="record-delete" onclick="deleteRecord(${r.id})">🗑</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateStats() {
+  const today = todayStr();
+  const todayRecs = records.filter(r => r.date === today);
+  const total = todayRecs.reduce((a, r) => a + r.duration, 0);
+  const count = todayRecs.length;
+
+  document.getElementById('statToday').textContent = formatDurationLong(total);
+  document.getElementById('statCount').textContent = count;
+
+  if (count > 0) {
+    const longest = Math.max(...todayRecs.map(r => r.duration));
+    const avg = total / count;
+    document.getElementById('statLongest').textContent = Math.floor(longest / 60000) + 'm';
+    document.getElementById('statAvg').textContent = Math.floor(avg / 60000) + 'm';
+  } else {
+    document.getElementById('statLongest').textContent = '0m';
+    document.getElementById('statAvg').textContent = '0m';
+  }
+
+  // Category breakdown
+  const breakdown = document.getElementById('catBreakdown');
+  const catTotals = {};
+  todayRecs.forEach(r => { catTotals[r.cat] = (catTotals[r.cat] || 0) + r.duration; });
+  const catEntries = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+
+  if (catEntries.length === 0) {
+    breakdown.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">カテゴリーデータなし</div>';
+    return;
+  }
+
+  const maxMs = catEntries[0][1];
+  breakdown.innerHTML = `
+    <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:14px">カテゴリー別</div>
+    ${catEntries.map(([cat, ms]) => {
+      const c = CATS[cat] || CATS.other;
+      const pct = (ms / maxMs) * 100;
+      return `
+        <div class="cat-row">
+          <div class="cat-name" style="color:${c.color}">${c.label}</div>
+          <div class="cat-bar-wrap">
+            <div class="cat-bar" style="width:${pct}%;background:${c.color}"></div>
+          </div>
+          <div class="cat-time">${formatDurationLong(ms)}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+function switchPage(page) {
+  document.getElementById('homePage').classList.toggle('active', page === 'home');
+  document.getElementById('statsPage').classList.toggle('active', page === 'stats');
+  document.getElementById('navHome').classList.toggle('active', page === 'home');
+  document.getElementById('navStats').classList.toggle('active', page === 'stats');
+  if (page === 'stats') updateStats();
+}
+
+let editingId = null;
+
+function openEditModal(id) {
+  const rec = records.find(r => r.id === id);
+  if (!rec) return;
+  editingId = id;
+  document.getElementById('editTaskName').value = rec.task;
+  document.getElementById('editCat').value = rec.cat;
+  const totalSec = Math.floor(rec.duration / 1000);
+  document.getElementById('editHours').value = Math.floor(totalSec / 3600);
+  document.getElementById('editMinutes').value = Math.floor((totalSec % 3600) / 60);
+  document.getElementById('editSeconds').value = totalSec % 60;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('editModal')) return;
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const rec = records.find(r => r.id === editingId);
+  if (!rec) return;
+  rec.task = document.getElementById('editTaskName').value.trim() || rec.task;
+  rec.cat = document.getElementById('editCat').value;
+  const h = parseInt(document.getElementById('editHours').value) || 0;
+  const m = parseInt(document.getElementById('editMinutes').value) || 0;
+  const s = parseInt(document.getElementById('editSeconds').value) || 0;
+  rec.duration = (h * 3600 + m * 60 + s) * 1000;
+  saveRecords();
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+  renderRecords();
+  updateStats();
+}
+
+// Init
+updateDateDisplay();
+renderRecords();
+updateStats();
+setInterval(updateDateDisplay, 60000);
+</script>
+
+
+</body></html>
